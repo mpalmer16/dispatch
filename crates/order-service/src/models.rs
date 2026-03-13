@@ -14,5 +14,6 @@ pub struct Order {
     pub customer_id: String,
     pub total_cents: i64,
     pub status: String,
+    pub idempotency_key: Option<String>,
     pub created_at: DateTime<Utc>,
 }

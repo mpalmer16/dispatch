@@ -1,7 +1,7 @@
 use axum::{
     Json,
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
 };
 use uuid::Uuid;
 
@@ -13,13 +13,26 @@ use crate::{
 
 pub async fn create_order(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<CreateOrderRequest>,
 ) -> Result<(StatusCode, Json<Order>), StatusCode> {
+    let idempotency_key = headers.get("Idempotency-Key").and_then(|v| v.to_str().ok());
+
+    if let Some(key) = idempotency_key {
+        if let Some(existing) = db::get_order_by_idempotency_key(&state.db, key)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        {
+            return Ok((StatusCode::OK, Json(existing)));
+        }
+    }
+
     let order = db::insert_order(
         &state.db,
         Uuid::new_v4(),
         &payload.customer_id,
         payload.total_cents,
+        idempotency_key,
     )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
