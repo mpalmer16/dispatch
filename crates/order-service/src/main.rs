@@ -1,12 +1,28 @@
 use axum::{Router, routing::get};
-use std::net::SocketAddr;
+use sqlx::{PgPool, postgres::PgPoolOptions};
+use std::{env, net::SocketAddr};
 use tracing::info;
+
+mod app_state;
+use app_state::AppState;
 
 #[tokio::main]
 async fn main() {
     init_tracing();
 
-    let app = Router::new().route("/health", get(health));
+    dotenvy::dotenv().ok();
+
+    let db_url = env::var("DATABASE_URL").expect("database url must be set");
+
+    let pool = PgPool::connect(&db_url)
+        .await
+        .expect("could not connect to database");
+
+    let state = AppState { db: pool };
+
+    let app = Router::new()
+        .route("/health", get(health))
+        .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     info!("starting order-service on {}", addr);
