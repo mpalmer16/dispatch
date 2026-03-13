@@ -1,10 +1,18 @@
-use axum::{Router, routing::get};
-use sqlx::{PgPool, postgres::PgPoolOptions};
+use axum::{
+    Router,
+    routing::{get, post},
+};
+use sqlx::PgPool;
 use std::{env, net::SocketAddr};
 use tracing::info;
 
 mod app_state;
+mod db;
+mod handlers;
+mod models;
 use app_state::AppState;
+
+use crate::handlers::orders::{create_order, get_order};
 
 #[tokio::main]
 async fn main() {
@@ -22,6 +30,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(health))
+        .route("/orders", post(create_order))
+        .route("/orders/{id}", get(get_order))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
