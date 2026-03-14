@@ -23,7 +23,11 @@ pub async fn create_order(
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         {
-            return Ok((StatusCode::OK, Json(existing)));
+            if payload.total_cents == existing.total_cents {
+                return Ok((StatusCode::OK, Json(existing)));
+            } else {
+                return Err(StatusCode::CONFLICT);
+            }
         }
     }
 
