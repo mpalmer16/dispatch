@@ -51,7 +51,7 @@ async fn same_payload_different_keys_makes_different_orders() {
     assert_eq!(status_2, StatusCode::CREATED);
     let order_2 = order_2.expect("expected second POST to return an order");
 
-    assert!(order_1.id != order_2.id);
+    assert_ne!(order_1.id, order_2.id);
     assert_eq!(order_1.customer_id, order_2.customer_id);
     assert_eq!(order_1.total_cents, order_2.total_cents);
 }
@@ -109,7 +109,7 @@ async fn no_key_repeated_makes_different_ids() {
     assert_eq!(status_2, StatusCode::CREATED);
     let order_2 = order_2.expect("expected second POST to return an order");
 
-    assert!(order_1.id != order_2.id);
+    assert_ne!(order_1.id, order_2.id);
 }
 
 async fn test_setup() -> Router {
