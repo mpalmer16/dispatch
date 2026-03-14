@@ -8,7 +8,7 @@ pub struct CreateOrderRequest {
     pub total_cents: i64,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Order {
     pub id: Uuid,
     pub customer_id: String,

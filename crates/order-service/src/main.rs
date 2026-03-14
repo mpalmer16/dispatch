@@ -1,18 +1,7 @@
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use order_service::{app::build_app, app_state::AppState};
 use sqlx::PgPool;
 use std::{env, net::SocketAddr};
 use tracing::info;
-
-mod app_state;
-mod db;
-mod handlers;
-mod models;
-use app_state::AppState;
-
-use crate::handlers::orders::{create_order, get_order};
 
 #[tokio::main]
 async fn main() {
@@ -40,14 +29,6 @@ async fn main() {
     axum::serve(listener, app).await.expect("server failed")
 }
 
-fn build_app(app_state: AppState) -> Router {
-    Router::new()
-        .route("/health", get(health))
-        .route("/orders", post(create_order))
-        .route("/orders/{id}", get(get_order))
-        .with_state(app_state)
-}
-
 fn init_tracing() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -55,8 +36,4 @@ fn init_tracing() {
                 .unwrap_or_else(|_| "order_service=debug,axum=info".to_string()),
         )
         .init()
-}
-
-async fn health() -> &'static str {
-    "OK"
 }

@@ -12,7 +12,7 @@ pub async fn insert_order(
 ) -> Result<Order, sqlx::Error> {
     sqlx::query_as::<_, Order>(
         r#"
-        INSERT INTO orders (id, customer_id, total_cents, idempotency_key, status)
+        INSERT INTO orders (id, customer_id, total_cents, status, idempotency_key)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, customer_id, total_cents, status, idempotency_key, created_at
         "#,
@@ -29,7 +29,7 @@ pub async fn insert_order(
 pub async fn get_order_by_id(db: &PgPool, id: Uuid) -> Result<Option<Order>, sqlx::Error> {
     sqlx::query_as::<_, Order>(
         r#"
-        SELECT id, customer_id, total_cents, status, created_at
+        SELECT id, customer_id, total_cents, status, idempotency_key, created_at
         FROM orders
         WHERE id = $1
         "#,
