@@ -28,11 +28,7 @@ async fn main() {
 
     let state = AppState { db: pool };
 
-    let app = Router::new()
-        .route("/health", get(health))
-        .route("/orders", post(create_order))
-        .route("/orders/{id}", get(get_order))
-        .with_state(state);
+    let app = build_app(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     info!("starting order-service on {}", addr);
@@ -42,6 +38,14 @@ async fn main() {
         .expect("failed to bind TCP listener");
 
     axum::serve(listener, app).await.expect("server failed")
+}
+
+fn build_app(app_state: AppState) -> Router {
+    Router::new()
+        .route("/health", get(health))
+        .route("/orders", post(create_order))
+        .route("/orders/{id}", get(get_order))
+        .with_state(app_state)
 }
 
 fn init_tracing() {
