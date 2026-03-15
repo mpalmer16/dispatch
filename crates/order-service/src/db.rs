@@ -39,18 +39,21 @@ pub async fn get_order_by_id(db: &PgPool, id: Uuid) -> Result<Option<Order>, sql
     .await
 }
 
-pub async fn get_order_by_idempotency_key(
+pub async fn get_order_by_idempotency_key_and_customer_id(
     db: &PgPool,
     key: &str,
+    customer_id: &str,
 ) -> Result<Option<Order>, sqlx::Error> {
     sqlx::query_as::<_, Order>(
         r#"
         SELECT id, customer_id, total_cents, status, idempotency_key, created_at
         FROM orders
         WHERE idempotency_key = $1
+        AND customer_id = $2
         "#,
     )
     .bind(key)
+    .bind(customer_id)
     .fetch_optional(db)
     .await
 }

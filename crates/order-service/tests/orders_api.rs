@@ -57,16 +57,39 @@ async fn same_payload_different_keys_makes_different_orders() {
 }
 
 #[tokio::test]
+async fn different_payload_different_keys_makes_different_orders() {
+    let pool = test_pg_pool().await;
+    reset_db(&pool).await;
+
+    let state = AppState { db: pool };
+    let app = build_app(state);
+    let payload_1 = create_payload("customer-test-3-1", 4999);
+    let payload_2 = create_payload("customer-test-3-2", 5999);
+
+    let (status_1, order_1) =
+        do_post_request("/orders", Some("key-test-3-1"), &payload_1, &app).await;
+    assert_eq!(status_1, StatusCode::CREATED);
+    let order_1 = order_1.expect("expected first POST to return an order");
+
+    let (status_2, order_2) =
+        do_post_request("/orders", Some("key-test-3-2"), &payload_2, &app).await;
+    assert_eq!(status_2, StatusCode::CREATED);
+    let order_2 = order_2.expect("expected second POST to return an order");
+
+    assert_ne!(order_1.id, order_2.id);
+}
+
+#[tokio::test]
 async fn create_then_get_by_id_returns_order() {
     let pool = test_pg_pool().await;
     reset_db(&pool).await;
 
     let state = AppState { db: pool };
     let app = build_app(state);
-    let payload = create_payload("customer-test-3", 4999);
+    let payload = create_payload("customer-test-4", 4999);
 
     let (status_1, order_1) =
-        do_post_request("/orders", Some("key-test-3-1"), &payload, &app).await;
+        do_post_request("/orders", Some("key-test-4-1"), &payload, &app).await;
     assert_eq!(status_1, StatusCode::CREATED);
     let order_1 = order_1.expect("expected POST to return an order");
 
@@ -82,24 +105,37 @@ async fn create_then_get_by_id_returns_order() {
 }
 
 #[tokio::test]
-async fn same_customer_same_key_different_payloads() {
+async fn same_customer_same_key_different_payloads_throws_conflict() {
     let app = test_setup().await;
-    let payload_1 = create_payload("customer-test-4", 4999);
-    let payload_2 = create_payload("customer-test-4", 5999);
+    let payload_1 = create_payload("customer-test-5", 4999);
+    let payload_2 = create_payload("customer-test-5", 5999);
 
-    let (status_1, _) = do_post_request("/orders", Some("key-test-4"), &payload_1, &app).await;
+    let (status_1, _) = do_post_request("/orders", Some("key-test-5"), &payload_1, &app).await;
     assert_eq!(status_1, StatusCode::CREATED);
 
     let (status_2, order_2) =
-        do_post_request("/orders", Some("key-test-4"), &payload_2, &app).await;
+        do_post_request("/orders", Some("key-test-5"), &payload_2, &app).await;
     assert_eq!(status_2, StatusCode::CONFLICT);
     assert!(order_2.is_none())
 }
 
 #[tokio::test]
+async fn different_customer_same_key_same_payloads_creates_order() {
+    let app = test_setup().await;
+    let payload_1 = create_payload("customer-test-6", 4999);
+    let payload_2 = create_payload("customer-test-7", 4999);
+
+    let (status_1, _) = do_post_request("/orders", Some("key-test-6"), &payload_1, &app).await;
+    assert_eq!(status_1, StatusCode::CREATED);
+
+    let (status_2, _) = do_post_request("/orders", Some("key-test-6"), &payload_2, &app).await;
+    assert_eq!(status_2, StatusCode::CREATED);
+}
+
+#[tokio::test]
 async fn no_key_repeated_makes_different_ids() {
     let app = test_setup().await;
-    let payload_1 = create_payload("customer-test-5", 4999);
+    let payload_1 = create_payload("customer-test-8", 4999);
 
     let (status_1, order_1) = do_post_request("/orders", None, &payload_1, &app).await;
     assert_eq!(status_1, StatusCode::CREATED);

@@ -19,15 +19,16 @@ pub async fn create_order(
     let idempotency_key = headers.get("Idempotency-Key").and_then(|v| v.to_str().ok());
 
     if let Some(key) = idempotency_key {
-        if let Some(existing) = db::get_order_by_idempotency_key(&state.db, key)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        if let Some(existing) =
+            db::get_order_by_idempotency_key_and_customer_id(&state.db, key, &payload.customer_id)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         {
-            if payload.total_cents == existing.total_cents {
-                return Ok((StatusCode::OK, Json(existing)));
+            return if payload.total_cents == existing.total_cents {
+                Ok((StatusCode::OK, Json(existing)))
             } else {
-                return Err(StatusCode::CONFLICT);
-            }
+                Err(StatusCode::CONFLICT)
+            };
         }
     }
 
@@ -39,7 +40,7 @@ pub async fn create_order(
         idempotency_key,
     )
     .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .map_err(|_| StatusCode::GATEWAY_TIMEOUT)?;
 
     Ok((StatusCode::CREATED, Json(order)))
 }
