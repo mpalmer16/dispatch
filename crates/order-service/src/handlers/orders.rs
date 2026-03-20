@@ -3,12 +3,13 @@ use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
 };
+use chrono::Utc;
 use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
     db,
-    models::{CreateOrderRequest, Order},
+    models::{CreateOrderRequest, Order, OrderCreatedEvent, OrderCreatedPayload},
 };
 
 pub async fn create_order(
@@ -32,12 +33,29 @@ pub async fn create_order(
         }
     }
 
-    let order = db::insert_order(
+    let order_id = Uuid::new_v4();
+    let event_id = Uuid::new_v4();
+    let occured_at = Utc::now();
+
+    let event = OrderCreatedEvent {
+        event_id,
+        event_type: "order.created".to_string(),
+        occurred_at: occured_at,
+        payload: OrderCreatedPayload {
+            order_id,
+            customer_id: payload.customer_id.clone(),
+            total_cents: payload.total_cents,
+            status: "created".to_string(),
+        },
+    };
+
+    let order = db::insert_order_with_outbox(
         &state.db,
         Uuid::new_v4(),
         &payload.customer_id,
         payload.total_cents,
         idempotency_key,
+        &event,
     )
     .await
     .map_err(|_| StatusCode::GATEWAY_TIMEOUT)?;
