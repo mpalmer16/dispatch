@@ -1,6 +1,6 @@
 use order_service::{app::build_app, app_state::AppState};
 use sqlx::PgPool;
-use std::{env, net::SocketAddr};
+use std::{env, net::SocketAddr, str::FromStr};
 use tracing::info;
 
 #[tokio::main]
@@ -10,6 +10,8 @@ async fn main() {
     dotenvy::dotenv().ok();
 
     let db_url = env::var("DATABASE_URL").expect("database url must be set");
+    let bind_addr = env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".to_string());
+    let addr = SocketAddr::from_str(&bind_addr).expect("bind address must be a valid socket addr");
 
     let pool = PgPool::connect(&db_url)
         .await
@@ -18,8 +20,6 @@ async fn main() {
     let state = AppState { db: pool };
 
     let app = build_app(state);
-
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     info!("starting order-service on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr)
