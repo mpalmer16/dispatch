@@ -1,6 +1,6 @@
-# dispatch
+# dispatch-rs
 
-`dispatch` contains the Rust order service. It exposes the HTTP API for creating and fetching orders and owns the transactional write to both `orders` and `order_outbox`.
+`dispatch-rs` contains the Rust order service. It exposes the HTTP API for creating and fetching orders and owns the transactional write to both `orders` and `order_outbox`.
 
 In the larger system, this service is the entrypoint for new work:
 
