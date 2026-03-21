@@ -4,6 +4,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
 };
 use chrono::Utc;
+use tracing::{info, warn};
 use uuid::Uuid;
 
 use crate::{
@@ -26,8 +27,22 @@ pub async fn create_order(
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         {
             return if payload.total_cents == existing.total_cents {
+                info!(
+                    order_id = %existing.id,
+                    customer_id = %existing.customer_id,
+                    total_cents = existing.total_cents,
+                    idempotency_key = key,
+                    "reused existing order for idempotent create request"
+                );
                 Ok((StatusCode::OK, Json(existing)))
             } else {
+                warn!(
+                    customer_id = %payload.customer_id,
+                    requested_total_cents = payload.total_cents,
+                    existing_total_cents = existing.total_cents,
+                    idempotency_key = key,
+                    "rejected conflicting create request for existing idempotency key"
+                );
                 Err(StatusCode::CONFLICT)
             };
         }
@@ -51,7 +66,7 @@ pub async fn create_order(
 
     let order = db::insert_order_with_outbox(
         &state.db,
-        Uuid::new_v4(),
+        order_id,
         &payload.customer_id,
         payload.total_cents,
         idempotency_key,
@@ -59,6 +74,14 @@ pub async fn create_order(
     )
     .await
     .map_err(|_| StatusCode::GATEWAY_TIMEOUT)?;
+
+    info!(
+        order_id = %order.id,
+        customer_id = %order.customer_id,
+        total_cents = order.total_cents,
+        event_id = %event.event_id,
+        "created order and wrote outbox event"
+    );
 
     Ok((StatusCode::CREATED, Json(order)))
 }

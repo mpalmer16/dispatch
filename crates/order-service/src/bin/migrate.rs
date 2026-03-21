@@ -26,7 +26,11 @@ async fn main() {
 
 async fn connect_with_retry(db_url: &str) -> sqlx::PgPool {
     for attempt in 1..=MAX_ATTEMPTS {
-        match PgPoolOptions::new().max_connections(1).connect(db_url).await {
+        match PgPoolOptions::new()
+            .max_connections(1)
+            .connect(db_url)
+            .await
+        {
             Ok(pool) => {
                 info!("connected to database on attempt {}", attempt);
                 return pool;
@@ -53,8 +57,7 @@ async fn connect_with_retry(db_url: &str) -> sqlx::PgPool {
 fn init_tracing() {
     tracing_subscriber::fmt()
         .with_env_filter(
-            std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "migrate=info,sqlx=warn".to_string()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "migrate=info,sqlx=warn".to_string()),
         )
         .init();
 }
