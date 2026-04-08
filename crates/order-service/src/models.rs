@@ -28,7 +28,7 @@ pub struct OrderOutbox {
     pub processed_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderCreatedPayload {
     pub order_id: Uuid,
@@ -37,7 +37,7 @@ pub struct OrderCreatedPayload {
     pub status: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderCreatedEvent {
     pub event_id: Uuid,
